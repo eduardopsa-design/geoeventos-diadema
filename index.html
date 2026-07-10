@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoEventos Diadema</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div>
+      <h1>GeoEventos Diadema</h1>
+      <p>Mapa inteligente de eventos da cidade</p>
+    </div>
+
+    <div class="filters">
+      <input id="searchInput" type="text" placeholder="Pesquisar bairro, região ou evento..." />
+
+      <select id="dateFilter">
+        <option value="todos">Todas as datas</option>
+        <option value="hoje">Hoje</option>
+        <option value="amanha">Amanhã</option>
+        <option value="semana">Próximos 7 dias</option>
+      </select>
+
+      <select id="regionFilter">
+        <option value="">Todas as regiões</option>
+      </select>
+
+      <select id="secretariaFilter">
+        <option value="">Todas as secretarias</option>
+      </select>
+
+      <button id="heatBtn">🔥 Heatmap</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="map"></div>
+  </main>
+
+  <div id="statusBox">Carregando eventos...</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

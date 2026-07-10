@@ -1,5 +1,5 @@
-console.log("GeoEventos v1.8 carregado");
-const BAIRROS_URL = "bairros-diadema.geojson?v=1.8";
+console.log("GeoEventos v1.9 carregado");
+const BAIRROS_URL = "bairros-diadema.geojson?v=1.9";
 const DATA_URL = "https://script.google.com/macros/s/AKfycbxBp7RUuULIm7Kbus-lIsogGKLZ78cgr_YIWBh2xX9hRCCPglTOnO2_DLQJqE-x6jih/exec";
 
 const map = L.map("map").setView([-23.6865, -46.6234], 13);
@@ -11,12 +11,15 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 const markersLayer = L.markerClusterGroup();
 const streetSegmentsLayer = L.layerGroup().addTo(map);
+const routeEditorLayers = new L.FeatureGroup().addTo(map);
+let routeDrawHandler = null;
 let heatLayer = null;
 let heatActive = false;
 let allEvents = [];
 let selectedCalendarDate = null;
 let mayorAgendaOnly = false;
 let selectedNeighborhood = "";
+let selectedRouteEvent=null, routeLayerSequence=[];
 let bairrosActive = false;
 let bairrosGeoJsonData = null;
 let bairrosLayer = null;
@@ -29,6 +32,7 @@ const searchInput = document.getElementById("searchInput");
 const dateFilter = document.getElementById("dateFilter");
 const regionFilter = document.getElementById("regionFilter");
 const secretariaFilter = document.getElementById("secretariaFilter");
+const routeEditorBtn=document.getElementById("routeEditorBtn"),routeEditorPanel=document.getElementById("routeEditorPanel"),closeRouteEditorBtn=document.getElementById("closeRouteEditorBtn"),routeEventSelect=document.getElementById("routeEventSelect"),routeEditorCode=document.getElementById("routeEditorCode"),startRouteDrawBtn=document.getElementById("startRouteDrawBtn"),removeLastRouteBtn=document.getElementById("removeLastRouteBtn"),clearRoutesBtn=document.getElementById("clearRoutesBtn"),saveRoutesBtn=document.getElementById("saveRoutesBtn"),routeEditorStatus=document.getElementById("routeEditorStatus");
 const mayorAgendaBtn = document.getElementById("mayorAgendaBtn");
 const dashboardBtn = document.getElementById("dashboardBtn");
 const dashboardPanel = document.getElementById("dashboardPanel");
@@ -68,10 +72,7 @@ function normalize(value) {
     .trim();
 }
 
-function parseCoordinate(value) {
-  const parsed = Number(String(value ?? "").replace(",", ".").trim());
-  return Number.isFinite(parsed) ? parsed : null;
-}
+function parseCoordinate(value) { const text=String(value??"").replace(",", ".").trim(); if(!text)return null; const parsed=Number(text); return Number.isFinite(parsed)?parsed:null; }
 
 function parseDateBR(value) {
   if (!value) return null;
@@ -158,78 +159,10 @@ function createIcon(evento) {
 
 
 
-function getEventSegments(evento) {
-  if (!Array.isArray(evento.trechos)) return [];
-
-  return evento.trechos
-    .map((trecho) => {
-      const startLat = parseCoordinate(trecho.latitudeInicial);
-      const startLng = parseCoordinate(trecho.longitudeInicial);
-      const endLat = parseCoordinate(trecho.latitudeFinal);
-      const endLng = parseCoordinate(trecho.longitudeFinal);
-
-      if (
-        startLat === null ||
-        startLng === null ||
-        endLat === null ||
-        endLng === null
-      ) {
-        return null;
-      }
-
-      return {
-        idTrecho: trecho.idTrecho || "",
-        ordem: Number(trecho.ordem || 0),
-        enderecoInicial: trecho.enderecoInicial || "",
-        enderecoFinal: trecho.enderecoFinal || "",
-        start: [startLat, startLng],
-        end: [endLat, endLng]
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.ordem - b.ordem);
-}
-
-function getEventPosition(evento) {
-  const lat = parseCoordinate(evento.latitude);
-  const lng = parseCoordinate(evento.longitude);
-
-  if (lat !== null && lng !== null) {
-    return [lat, lng];
-  }
-
-  const segments = getEventSegments(evento);
-
-  if (segments.length > 0) {
-    const points = segments.flatMap((segment) => [
-      segment.start,
-      segment.end
-    ]);
-
-    const latSum = points.reduce((sum, point) => sum + point[0], 0);
-    const lngSum = points.reduce((sum, point) => sum + point[1], 0);
-
-    return [
-      latSum / points.length,
-      lngSum / points.length
-    ];
-  }
-
-  return null;
-}
-
-function hasStreetSegments(evento) {
-  return getEventSegments(evento).length > 0;
-}
-
-function streetSegmentKey(evento, segment) {
-  return [
-    evento.origemRegistro || "",
-    evento.idBase || evento.id || "",
-    segment.start.join(","),
-    segment.end.join(",")
-  ].join("|");
-}
+function getEventRoutes(evento){if(!Array.isArray(evento.percursos))return[];return evento.percursos.map(p=>({grupo:Number(p.grupo||0),points:Array.isArray(p.pontos)?p.pontos.map(x=>{const lat=parseCoordinate(x.latitude),lng=parseCoordinate(x.longitude);return lat===null||lng===null?null:[lat,lng]}).filter(Boolean):[]})).filter(p=>p.points.length>=2).sort((x,y)=>x.grupo-y.grupo)}
+function getEventPosition(evento){const lat=parseCoordinate(evento.latitude),lng=parseCoordinate(evento.longitude);if(lat!==null&&lng!==null)return[lat,lng];const r=getEventRoutes(evento),pts=r.flatMap(x=>x.points);if(!pts.length)return null;return[pts.reduce((s,p)=>s+p[0],0)/pts.length,pts.reduce((s,p)=>s+p[1],0)/pts.length]}
+function hasStreetSegments(evento){return getEventRoutes(evento).length>0}
+function streetSegmentKey(evento,r){return[evento.origemRegistro||"",evento.idBase||evento.id||"",r.grupo,r.points.map(p=>p.join(",")).join(";")].join("|")}
 
 function buildDestination(evento) {
   const position = getEventPosition(evento);
@@ -321,7 +254,7 @@ function buildPopup(evento) {
             <div class="segment-info">
               <strong>🛣️ Área ocupada pela atividade</strong><br>
               <span class="segment-count-badge">
-                ${getEventSegments(evento).length} trecho(s) de rua
+                ${getEventRoutes(evento).length} rua(s) ou trecho(s)
               </span>
             </div>
           `
@@ -375,6 +308,18 @@ window.copyAddress = async function(button) {
 
 
 
+
+function uniqueRecurringEvents(){const m=new Map();allEvents.forEach(e=>{if(!getCategory(e).includes("recorrente"))return;const id=String(e.idBase??"").trim();if(id&&!m.has(id))m.set(id,e)});return[...m.values()].sort((a,b)=>String(a.evento||"").localeCompare(String(b.evento||""),"pt-BR"))}
+function fillRouteEventSelect(){routeEventSelect.innerHTML='<option value="">Selecione uma feira</option>';uniqueRecurringEvents().forEach(e=>{const o=document.createElement("option");o.value=String(e.idBase);o.textContent=`${e.idBase} — ${e.evento}`;routeEventSelect.appendChild(o)})}
+function setRouteEditorStatus(msg,type=""){routeEditorStatus.textContent=msg;routeEditorStatus.className="route-editor-status"+(type?` ${type}`:"")}
+function clearRouteEditorLayers(){routeEditorLayers.clearLayers();routeLayerSequence=[]}
+function addRouteEditorLayer(latlngs){const l=L.polyline(latlngs,{color:"#126d9c",weight:7,opacity:.9,lineCap:"round",lineJoin:"round"}).addTo(routeEditorLayers);routeLayerSequence.push(l);return l}
+function loadSelectedEventRoutes(){clearRouteEditorLayers();selectedRouteEvent=uniqueRecurringEvents().find(e=>String(e.idBase)===String(routeEventSelect.value))||null;if(!selectedRouteEvent){setRouteEditorStatus("Selecione uma feira para começar.");return}getEventRoutes(selectedRouteEvent).forEach(r=>addRouteEditorLayer(r.points));if(routeLayerSequence.length)map.fitBounds(L.featureGroup(routeLayerSequence).getBounds().pad(.2),{maxZoom:18});setRouteEditorStatus(routeLayerSequence.length?`${routeLayerSequence.length} trecho(s) carregado(s). Limpe para redesenhar.`:"Nenhum percurso. Clique em Desenhar nova rua.")}
+function openRouteEditor(){closeDashboard();closeCalendar();routeEditorPanel.classList.add("open");routeEditorPanel.setAttribute("aria-hidden","false");routeEditorBtn.classList.add("active");fillRouteEventSelect();loadSelectedEventRoutes()}
+function closeRouteEditor(){if(routeDrawHandler){routeDrawHandler.disable();routeDrawHandler=null}routeEditorPanel.classList.remove("open");routeEditorPanel.setAttribute("aria-hidden","true");routeEditorBtn.classList.remove("active")}
+function startRouteDrawing(){if(!selectedRouteEvent){setRouteEditorStatus("Selecione uma feira primeiro.","error");return}routeDrawHandler=new L.Draw.Polyline(map,{shapeOptions:{color:"#126d9c",weight:7,opacity:.9},showLength:true,metric:true});routeDrawHandler.enable();setRouteEditorStatus("Clique no começo, nas curvas e no fim. Clique no último ponto para concluir.")}
+function serializeRoutes(){return routeLayerSequence.map((l,i)=>({grupo:i+1,pontos:l.getLatLngs().map((p,j)=>({ordem:j+1,latitude:p.lat,longitude:p.lng}))}))}
+async function saveRoutes(){if(!selectedRouteEvent)return setRouteEditorStatus("Selecione uma feira.","error");if(!routeEditorCode.value.trim())return setRouteEditorStatus("Informe o código de edição.","error");const percursos=serializeRoutes();if(!percursos.length)return setRouteEditorStatus("Desenhe pelo menos uma rua.","error");saveRoutesBtn.disabled=true;setRouteEditorStatus("Salvando percurso...");try{const body=new URLSearchParams({acao:"salvarPercurso",codigo:routeEditorCode.value.trim(),origem:"Eventos Recorrentes",idEvento:String(selectedRouteEvent.idBase),percursos:JSON.stringify(percursos)});const response=await fetch(DATA_URL,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body});const result=await response.json();if(!result.sucesso)throw new Error(result.erro||"Não foi possível salvar");setRouteEditorStatus(`Salvo: ${result.trechos} rua(s), ${result.pontos} ponto(s).`,"success");await loadEvents();routeEventSelect.value=String(selectedRouteEvent.idBase);loadSelectedEventRoutes()}catch(e){setRouteEditorStatus(`Erro: ${e.message}`,"error")}finally{saveRoutesBtn.disabled=false}}
 
 function bairroColor(count) {
   if (count >= 13) return "#d64545";
@@ -955,81 +900,7 @@ function filterEvents() {
 
 
 
-function renderStreetSegments(events) {
-  streetSegmentsLayer.clearLayers();
-
-  const drawnSegments = new Set();
-  let totalSegments = 0;
-
-  events.forEach((evento) => {
-    const segments = getEventSegments(evento);
-
-    segments.forEach((segment) => {
-      const key = streetSegmentKey(evento, segment);
-      if (!key || drawnSegments.has(key)) return;
-
-      drawnSegments.add(key);
-
-      const line = L.polyline(
-        [segment.start, segment.end],
-        {
-          color: "#27864a",
-          weight: 9,
-          opacity: 0.82,
-          lineCap: "round",
-          lineJoin: "round"
-        }
-      );
-
-      const descricaoTrecho = [
-        segment.enderecoInicial,
-        segment.enderecoFinal
-      ].filter(Boolean).join(" até ");
-
-      line.bindPopup(
-        buildPopup(evento) +
-        (
-          descricaoTrecho
-            ? `<div class="segment-info"><strong>Trecho:</strong><br>${escapeHtml(descricaoTrecho)}</div>`
-            : ""
-        ),
-        {
-          maxWidth: 350
-        }
-      );
-
-      line.bindTooltip(
-        `${evento.evento || "Evento"}${segment.ordem ? ` — trecho ${segment.ordem}` : ""}`,
-        {
-          sticky: true,
-          direction: "top",
-          className: "street-segment-label"
-        }
-      );
-
-      line.on("mouseover", () => {
-        line.setStyle({
-          color: "#145c31",
-          weight: 12,
-          opacity: 0.95
-        });
-      });
-
-      line.on("mouseout", () => {
-        line.setStyle({
-          color: "#27864a",
-          weight: 9,
-          opacity: 0.82
-        });
-      });
-
-      line.addTo(streetSegmentsLayer);
-      totalSegments += 1;
-    });
-  });
-
-  return totalSegments;
-}
+function renderStreetSegments(events){streetSegmentsLayer.clearLayers();const seen=new Set();let total=0;events.forEach(evento=>getEventRoutes(evento).forEach(route=>{const key=streetSegmentKey(evento,route);if(!key||seen.has(key))return;seen.add(key);const line=L.polyline(route.points,{color:"#27864a",weight:9,opacity:.82,lineCap:"round",lineJoin:"round"}).bindPopup(buildPopup(evento),{maxWidth:350}).bindTooltip(`${evento.evento||"Evento"} — trecho ${route.grupo}`,{sticky:true,direction:"top",className:"street-segment-label"});line.on("mouseover",()=>line.setStyle({color:"#145c31",weight:12,opacity:.95}));line.on("mouseout",()=>line.setStyle({color:"#27864a",weight:9,opacity:.82}));line.addTo(streetSegmentsLayer);total++}));return total}
 
 function renderMap() {
   const events = filterEvents();
@@ -1146,6 +1017,7 @@ async function loadEvents() {
     }
 
     fillSelects(allEvents);
+    fillRouteEventSelect();
     updateMayorAgendaButton();
     updateTerritorialButtons();
     renderCalendar();
@@ -1157,6 +1029,9 @@ async function loadEvents() {
       "Erro ao carregar eventos. Verifique a planilha e o Apps Script.";
   }
 }
+
+map.on(L.Draw.Event.CREATED,e=>{if(e.layerType!=="polyline")return;addRouteEditorLayer(e.layer.getLatLngs());routeDrawHandler=null;setRouteEditorStatus(`${routeLayerSequence.length} rua(s) desenhada(s). Desenhe outra ou salve.`)});
+routeEditorBtn.addEventListener("click",()=>routeEditorPanel.classList.contains("open")?closeRouteEditor():openRouteEditor());closeRouteEditorBtn.addEventListener("click",closeRouteEditor);routeEventSelect.addEventListener("change",loadSelectedEventRoutes);startRouteDrawBtn.addEventListener("click",startRouteDrawing);removeLastRouteBtn.addEventListener("click",()=>{const l=routeLayerSequence.pop();if(l){routeEditorLayers.removeLayer(l);setRouteEditorStatus(`${routeLayerSequence.length} trecho(s) permanecem.`)}else setRouteEditorStatus("Não há trecho para remover.","error")});clearRoutesBtn.addEventListener("click",()=>{clearRouteEditorLayers();setRouteEditorStatus("Desenho limpo.")});saveRoutesBtn.addEventListener("click",saveRoutes);
 
 searchInput.addEventListener("input", renderMap);
 dateFilter.addEventListener("change", () => {
@@ -1190,6 +1065,7 @@ mayorAgendaBtn.addEventListener("click", () => {
 dashboardBtn.addEventListener("click", () => {
   if (dashboardPanel.classList.contains("open")) {
     closeDashboard();
+    closeRouteEditor();
   } else {
     openDashboard();
   }
@@ -1259,6 +1135,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeCalendar();
     closeDashboard();
+    closeRouteEditor();
   }
 });
 

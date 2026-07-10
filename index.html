@@ -18,7 +18,8 @@
     rel="stylesheet"
     href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
   />
-  <link rel="stylesheet" href="style.css?v=1.8" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <link rel="stylesheet" href="style.css?v=1.9" />
 </head>
 
 <body>
@@ -55,6 +56,7 @@
         <option value="">Todas as secretarias</option>
       </select>
 
+      <button id="routeEditorBtn" type="button">✏️ Desenhar feira</button>
       <button id="mayorAgendaBtn" type="button">👔 Agenda do Prefeito</button>
       <button id="dashboardBtn" type="button">📊 Painel</button>
       <button id="calendarBtn" type="button">🗓️ Calendário</button>
@@ -80,11 +82,21 @@
 
 
 
+
+  <aside id="routeEditorPanel" class="route-editor-panel" aria-hidden="true">
+    <div class="route-editor-header"><div><span>EDITOR DE PERCURSO</span><h2>Desenhar feira no mapa</h2></div><button id="closeRouteEditorBtn" type="button">×</button></div>
+    <label class="route-editor-field"><span>Feira ou evento recorrente</span><select id="routeEventSelect"><option value="">Selecione uma feira</option></select></label>
+    <label class="route-editor-field"><span>Código de edição</span><input id="routeEditorCode" type="password" placeholder="Digite o código configurado no Apps Script" /></label>
+    <div class="route-editor-instructions"><strong>Como desenhar:</strong><ol><li>Selecione a feira.</li><li>Clique em <b>Desenhar nova rua</b>.</li><li>Clique no começo, nas curvas e no fim.</li><li>Clique no último ponto para concluir.</li><li>Repita para cada rua.</li><li>Clique em <b>Salvar percurso</b>.</li></ol></div>
+    <div class="route-editor-actions"><button id="startRouteDrawBtn" type="button">➕ Desenhar nova rua</button><button id="removeLastRouteBtn" type="button">↩️ Remover última rua</button><button id="clearRoutesBtn" type="button">🗑️ Limpar desenho</button><button id="saveRoutesBtn" class="primary" type="button">💾 Salvar percurso</button></div>
+    <div id="routeEditorStatus" class="route-editor-status">Selecione uma feira para começar.</div>
+  </aside>
+
   <section id="dashboardPanel" class="dashboard-panel" aria-hidden="true">
     <div class="dashboard-header">
       <div>
         <span class="dashboard-kicker">RESUMO DOS EVENTOS</span>
-        <h2>Painel GeoEventos <small class="version-label">v1.8</small></h2>
+        <h2>Painel GeoEventos <small class="version-label">v1.9</small></h2>
       </div>
       <button id="closeDashboardBtn" type="button" aria-label="Fechar painel">×</button>
     </div>
@@ -203,6 +215,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-  <script src="script.js?v=1.8"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="script.js?v=1.9"></script>
 </body>
 </html>

@@ -80,15 +80,82 @@ function getWeight(evento) {
 }
 
 function buildPopup(evento) {
+  const latitude = String(evento.latitude || "")
+    .replace(",", ".")
+    .trim();
+
+  const longitude = String(evento.longitude || "")
+    .replace(",", ".")
+    .trim();
+
+  let destino = "";
+
+  if (latitude && longitude) {
+    destino = ${latitude},${longitude};
+  } else {
+    destino = [
+      evento.local,
+      evento.endereco,
+      evento.bairro,
+      "Diadema - SP"
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  const linkComoChegar =
+    "https://www.google.com/maps/dir/?api=1&destination=" +
+    encodeURIComponent(destino) +
+    "&travelmode=driving";
+
   return `
-    <div class="popup-title">${evento.evento || "Evento"}</div>
-    <div class="popup-row"><span class="popup-label">📅 Data:</span> ${evento.data || "-"}</div>
-    <div class="popup-row"><span class="popup-label">🕒 Horário:</span> ${evento.horaInicio || "-"} às ${evento.horaFim || "-"}</div>
-    <div class="popup-row"><span class="popup-label">📍 Local:</span> ${evento.local || evento.endereco || "-"}</div>
-    <div class="popup-row"><span class="popup-label">🏘 Bairro:</span> ${evento.bairro || "-"} / ${evento.regiao || "-"}</div>
-    <div class="popup-row"><span class="popup-label">🏛 Secretaria:</span> ${evento.secretariaResponsavel || evento.secretaria || "-"}</div>
-    <div class="popup-row"><span class="popup-label">👥 Público:</span> ${evento.publicoEstimado || "-"}</div>
-    <div class="popup-row"><span class="popup-label">Status:</span> ${evento.status || "-"}</div>
+    <div class="popup-title">
+      ${evento.evento || "Evento"}
+    </div>
+
+    <div class="popup-row">
+      <span class="popup-label">📅 Data:</span>
+      ${evento.data || "-"}
+    </div>
+
+    <div class="popup-row">
+      <span class="popup-label">🕒 Horário:</span>
+      ${evento.horaInicio || "-"} às ${evento.horaFim || "-"}
+    </div>
+
+    <div class="popup-row">
+      <span class="popup-label">📍 Local:</span>
+      ${evento.local || evento.endereco || "-"}
+    </div>
+
+    <div class="popup-row">
+      <span class="popup-label">🏘️ Bairro:</span>
+      ${evento.bairro || "-"} / ${evento.regiao || "-"}
+    </div>
+
+    <div class="popup-row">
+      <span class="popup-label">🏛️ Secretaria:</span>
+      ${evento.secretariaResponsavel || evento.secretaria || "-"}
+    </div>
+
+    <div class="popup-row">
+      <span class="popup-label">👥 Público:</span>
+      ${evento.publicoEstimado || "-"}
+    </div>
+
+    <div class="popup-row">
+      <span class="popup-label">Status:</span>
+      ${evento.status || "-"}
+    </div>
+
+    <a
+      class="como-chegar-btn"
+      href="${linkComoChegar}"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      🚗 Como chegar
+    </a>
   `;
 }
 

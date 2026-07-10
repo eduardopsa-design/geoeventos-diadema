@@ -121,3 +121,19 @@ body {
     height: calc(100vh - 245px);
   }
 }
+.como-chegar-btn {
+  display: block;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #0b2f6b;
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.como-chegar-btn:hover {
+  background: #164b9b;
+}

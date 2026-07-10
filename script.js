@@ -3,7 +3,7 @@
 // Troque a URL abaixo pela URL do seu Google Apps Script.
 // ============================================================
 
-const DATA_URL = "https://script.google.com/macros/s/AKfycbzGzyd-VJWqKfHzpgY5ME_NWQfQa4tYE4yjM-tDeHj1XWeaqPRTmiGosVjBdFT5p-XX/exec";
+const DATA_URL = "https://script.google.com/macros/s/AKfycbxBp7RUuULIm7Kbus-lIsogGKLZ78cgr_YIWBh2xX9hRCCPglTOnO2_DLQJqE-x6jih/exec";
 
 // Centro aproximado de Diadema
 const map = L.map("map").setView([-23.6865, -46.6234], 13);

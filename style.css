@@ -2,106 +2,261 @@
   box-sizing: border-box;
 }
 
+:root {
+  --azul-escuro: #0b2f6b;
+  --azul: #164b9b;
+  --azul-claro: #eaf2fb;
+  --amarelo: #ffb000;
+  --laranja: #ff6a00;
+  --branco: #ffffff;
+  --cinza-fundo: #f4f6f8;
+  --cinza-texto: #5f6b7a;
+  --borda: #dce3eb;
+}
+
+html,
 body {
   margin: 0;
+  min-height: 100%;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f4f6f8;
+  background: var(--cinza-fundo);
   color: #172033;
 }
 
+button,
+input,
+select {
+  font: inherit;
+}
+
 .topbar {
+  position: relative;
+  z-index: 1000;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
   align-items: center;
+  gap: 18px;
   padding: 14px 18px;
-  background: #0b2f6b;
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(0,0,0,.18);
-  z-index: 999;
-  position: relative;
+  color: var(--branco);
+  background: linear-gradient(135deg, #08275a, var(--azul-escuro));
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.22);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 0 0 auto;
+}
+
+.brand-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  font-size: 23px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .topbar h1 {
   margin: 0;
   font-size: 24px;
-  letter-spacing: .5px;
+  line-height: 1.05;
+  letter-spacing: 0.2px;
 }
 
 .topbar p {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   font-size: 13px;
-  opacity: .9;
+  opacity: 0.88;
 }
 
 .filters {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .filters input,
 .filters select,
 .filters button {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 11px;
-  font-size: 14px;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 9px 11px;
   outline: none;
 }
 
+.filters input,
+.filters select {
+  background: var(--branco);
+  color: #172033;
+}
+
 .filters input {
-  width: 270px;
+  width: 310px;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: #8eb8ee;
+  box-shadow: 0 0 0 3px rgba(142, 184, 238, 0.24);
 }
 
 .filters button {
-  background: #ffb000;
-  color: #111;
-  font-weight: 700;
   cursor: pointer;
+  background: var(--amarelo);
+  color: #151515;
+  font-weight: 800;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.filters button:hover {
+  transform: translateY(-1px);
 }
 
 .filters button.active {
-  background: #ff5a00;
-  color: #fff;
+  background: var(--laranja);
+  color: var(--branco);
 }
 
 #map {
   width: 100%;
-  height: calc(100vh - 82px);
+  height: calc(100vh - 79px);
 }
 
 #statusBox {
   position: fixed;
   left: 16px;
   bottom: 18px;
-  background: rgba(11, 47, 107, .95);
-  color: #fff;
+  z-index: 1100;
+  max-width: calc(100vw - 32px);
   padding: 10px 13px;
-  border-radius: 8px;
+  border-radius: 9px;
+  background: rgba(11, 47, 107, 0.96);
+  color: var(--branco);
   font-size: 13px;
-  z-index: 1000;
-  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.25);
+}
+
+.event-popup {
+  min-width: 245px;
+}
+
+.popup-badge {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--azul-claro);
+  color: var(--azul-escuro);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .popup-title {
-  font-size: 17px;
+  margin: 0 0 9px;
+  font-size: 18px;
+  line-height: 1.2;
   font-weight: 800;
-  color: #0b2f6b;
-  margin-bottom: 6px;
+  color: var(--azul-escuro);
 }
 
 .popup-row {
-  margin: 3px 0;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 5px;
+  margin: 6px 0;
   font-size: 13px;
+  line-height: 1.35;
 }
 
 .popup-label {
   font-weight: 700;
 }
 
-@media (max-width: 850px) {
+.popup-actions {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.como-chegar-btn,
+.copiar-endereco-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.como-chegar-btn {
+  background: var(--azul-escuro);
+  color: var(--branco) !important;
+}
+
+.como-chegar-btn:hover {
+  background: var(--azul);
+}
+
+.copiar-endereco-btn {
+  background: #edf2f7;
+  color: #263345;
+}
+
+.copiar-endereco-btn:hover {
+  background: #dfe7ef;
+}
+
+.leaflet-popup-content {
+  margin: 15px 17px 16px;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 13px;
+  box-shadow: 0 9px 30px rgba(0, 0, 0, 0.2);
+}
+
+.custom-pin {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  color: #ffffff;
+  font-size: 16px;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.32);
+  transform: rotate(-45deg);
+}
+
+.custom-pin span {
+  transform: rotate(45deg);
+}
+
+.pin-evento {
+  background: #1769aa;
+}
+
+.pin-agenda {
+  background: #c62828;
+}
+
+.pin-recorrente {
+  background: #2e7d32;
+}
+
+@media (max-width: 980px) {
   .topbar {
     align-items: stretch;
     flex-direction: column;
@@ -111,30 +266,39 @@ body {
     justify-content: flex-start;
   }
 
-  .filters input,
-  .filters select,
-  .filters button {
-    width: 100%;
+  .filters input {
+    width: min(100%, 420px);
   }
 
   #map {
-    height: calc(100vh - 245px);
+    height: calc(100vh - 145px);
   }
 }
 
-.como-chegar-btn {
-  display: block;
-  margin-top: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: #0b2f6b;
-  color: #ffffff !important;
-  font-size: 14px;
-  font-weight: 700;
-  text-align: center;
-  text-decoration: none;
-}
+@media (max-width: 650px) {
+  .topbar {
+    padding: 12px;
+  }
 
-.como-chegar-btn:hover {
-  background: #164b9b;
+  .topbar h1 {
+    font-size: 21px;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filters input {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+
+  .filters button {
+    grid-column: 1 / -1;
+  }
+
+  #map {
+    height: calc(100vh - 250px);
+  }
 }

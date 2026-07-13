@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b2f6b" />
+  <title>GeoEventos Diadema</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <link rel="stylesheet" href="style.css?v=3.2.2" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+</head>
+
+<body>
+  <header class="topbar geodiadema-topbar">
+    <div class="brand geodiadema-brand">
+      <div class="brand-icon">🌆</div>
+      <div>
+        <h1>GeoDiadema</h1>
+        <p>Trabalhando por Diadema</p>
+      </div>
+    </div>
+
+    <div class="geodiadema-search-row">
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="Pesquisar evento, horta, bairro, região ou endereço..."
+        aria-label="Pesquisar informações em Diadema"
+      />
+
+      <button id="exploreBtn" class="primary-navigation-btn" type="button">
+        🏙️ Explorar Diadema
+      </button>
+
+      <button id="gabineteBtn" class="gabinete-main-btn" type="button">👔 Gabinete</button>
+      <button id="dashboardBtn" type="button">📊 Painel</button>
+      <button id="calendarBtn" type="button">🗓️ Calendário</button>
+      <button id="mayorAgendaBtn" type="button">👔 Agenda do Prefeito</button>
+      <button id="moreToolsBtn" type="button">⚙️ Mais opções</button>
+    </div>
+
+    <div id="advancedToolbar" class="filters advanced-toolbar" hidden>
+      <select id="dateFilter" aria-label="Filtrar por data">
+        <option value="todos">Todas as datas</option>
+        <option value="hoje">Hoje</option>
+        <option value="amanha">Amanhã</option>
+        <option value="semana">Próximos 7 dias</option>
+        <option value="mes">Próximos 30 dias</option>
+      </select>
+
+      <select id="regionFilter" aria-label="Filtrar por região">
+        <option value="">Todas as regiões</option>
+      </select>
+
+      <select id="secretariaFilter" aria-label="Filtrar por secretaria">
+        <option value="">Todas as secretarias</option>
+      </select>
+
+      <button id="todayBtn" type="button">📅 O que tem hoje?</button>
+      <button id="bairrosBtn" type="button">🗺️ Mostrar bairros</button>
+      <button id="heatBtn" type="button">🔥 Mapa de Calor</button>
+      <button id="onlyEventsBtn" type="button">📍 Somente eventos</button>
+      <button id="routeEditorBtn" type="button">✏️ Administrar feiras</button>
+<button id="dataCenterBtn" type="button">📦 Central de Cadastro</button>
+      <button id="favoritesBtn" type="button">⭐ Favoritos</button>
+      <button id="visitFolderBtn" type="button">📁 Pasta da Visita <span id="visitFolderCount">0</span></button>
+      <button id="vivaleiteTodayBtn" type="button">🥛 VIVALEITE hoje</button>
+
+      <!-- Mantido para compatibilidade; o controle visível fica em Explorar Diadema. -->
+      <button id="hortasBtn" class="compatibility-control" type="button">🌱 Hortas</button>
+    </div>
+  </header>
+
+  <main>
+    
+<section id="mobileMapHeader" class="mobile-map-header" aria-label="Controles do mapa">
+  <div>
+    <strong>🗺️ Mapa</strong>
+    <small id="mobileMapStateText">Toque em “Ativar” para movimentar o mapa</small>
+  </div>
+  <div class="mobile-map-header-actions">
+    <button id="mobileMapInteractBtn" type="button">Ativar</button>
+    <button id="mobileMapExpandBtn" type="button">Expandir</button>
+  </div>
+</section>
+<div id="map"></div>
+
+    <div id="bairrosLegend" class="bairros-legend" hidden>
+      <strong>Intensidade relativa por bairro</strong>
+      <span id="bairrosLegendTotal">Calculada sobre os eventos exibidos</span>
+      <span><i class="legend-swatch proportional-low"></i> Menor participação</span>
+      <span><i class="legend-swatch proportional-medium"></i> Participação intermediária</span>
+      <span><i class="legend-swatch proportional-high"></i> Maior participação</span>
+      <span><i class="legend-swatch zero"></i> Sem eventos</span>
+    </div>
+  </main>
+
+
+
+
+  
+  
+  <aside id="gabinetePanel" class="gabinete-panel" aria-hidden="true">
+    <div class="gabinete-panel-header">
+      <div>
+        <span>GEODIADEMA GABINETE</span>
+        <h2>👔 Preparar briefing executivo</h2>
+      </div>
+      <button id="closeGabineteBtn" type="button" aria-label="Fechar">×</button>
+    </div>
+
+    <section id="gabineteQueryStep" class="gabinete-step">
+      <div class="gabinete-grid">
+        <label>
+          <span>Tipo de consulta</span>
+          <select id="gabineteLocationType">
+            <option value="regiao">Região</option>
+            <option value="bairro">Bairro</option>
+          </select>
+        </label>
+
+        <div class="gabinete-location-multiple">
+          <span>Locais</span>
+          <div id="gabineteLocationOptions" class="gabinete-location-options"></div>
+        </div>
+
+        <label>
+          <span>Data</span>
+          <input id="gabineteDate" type="date" />
+        </label>
+
+        <label>
+          <span>Período</span>
+          <select id="gabinetePeriod">
+            <option value="dia">Dia inteiro</option>
+            <option value="manha">Manhã</option>
+            <option value="tarde">Tarde</option>
+            <option value="noite">Noite</option>
+            <option value="personalizado">Horário personalizado</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="gabineteCustomTime" class="gabinete-custom-time" hidden>
+        <label>
+          <span>Início</span>
+          <input id="gabineteStartTime" type="time" value="08:00" />
+        </label>
+        <label>
+          <span>Fim</span>
+          <input id="gabineteEndTime" type="time" value="18:00" />
+        </label>
+      </div>
+
+      <section class="gabinete-category-picker">
+        <div class="gabinete-category-picker-title">
+          <span>O que deseja incluir no briefing?</span>
+          <small>Marque apenas as categorias que deseja pesquisar.</small>
+        </div>
+
+        <div class="gabinete-category-options">
+          <label>
+            <input id="gabineteIncludeEventos" type="checkbox" checked />
+            <span>📅 Eventos</span>
+          </label>
+
+          <label>
+            <input id="gabineteIncludeHortas" type="checkbox" />
+            <span>🌱 Hortas</span>
+          </label>
+
+          <label>
+            <input id="gabineteIncludeFeiras" type="checkbox" />
+            <span>🛒 Feiras</span>
+          </label>
+
+          <label>
+            <input id="gabineteIncludeVivaleite" type="checkbox" />
+            <span>🥛 VIVALEITE</span>
+          </label>
+
+          <label class="disabled">
+            <input type="checkbox" disabled />
+            <span>🍎 Banco de Alimentos</span>
+            <small>Em breve</small>
+          </label>
+
+          <label class="disabled">
+            <input type="checkbox" disabled />
+            <span>🥛 Viva Leite</span>
+            <small>Em breve</small>
+          </label>
+
+          <label class="disabled">
+            <input type="checkbox" disabled />
+            <span>📍 Locais Estratégicos</span>
+            <small>Em breve</small>
+          </label>
+        </div>
+      </section>
+
+      <button id="gabineteSearchBtn" class="gabinete-primary" type="button">
+        🔎 Consultar
+      </button>
+
+      <div id="gabineteQueryStatus" class="gabinete-query-status">
+        Escolha o local, a data e o período.
+      </div>
+    </section>
+
+    <section id="gabineteResultsStep" class="gabinete-step" hidden>
+      <div class="gabinete-results-heading">
+        <div>
+          <span>RESULTADO TERRITORIAL</span>
+          <h3 id="gabineteResultTitle">Consulta</h3>
+          <p id="gabineteResultSubtitle"></p>
+        </div>
+        <button id="gabineteNewQueryBtn" type="button">Nova consulta</button>
+      </div>
+
+      <div id="gabineteCategoryResults" class="gabinete-category-results"></div>
+
+      <section id="gabineteSelectedOrderSection" class="gabinete-selected-order" hidden>
+        <div class="gabinete-selected-order-header">
+          <div>
+            <span>ORDEM DO BRIEFING</span>
+            <strong>Arraste os itens para reorganizar</strong>
+          </div>
+          <button id="gabineteClearSelectionBtn" type="button">Limpar seleção</button>
+        </div>
+
+        <div id="gabineteSelectedOrderList" class="gabinete-selected-order-list"></div>
+      </section>
+
+      <div id="gabineteSelectionSummary" class="gabinete-selection-summary"></div>
+
+      <div class="gabinete-briefing-fields">
+        <div class="gabinete-recipient-grid">
+          <label>
+            <span>Destinatário</span>
+            <input id="gabineteRecipientName" type="text"
+                   placeholder="Ex.: Taka Yamauchi" />
+          </label>
+
+          <label>
+            <span>Cargo</span>
+            <input id="gabineteRecipientRole" type="text"
+                   placeholder="Ex.: Prefeito" />
+          </label>
+
+          <label>
+            <span>Secretaria/Setor (opcional)</span>
+            <input id="gabineteRecipientDepartment" type="text"
+                   placeholder="Ex.: Gabinete" />
+          </label>
+        </div>
+
+        <label>
+          <span>Título do briefing</span>
+          <input id="gabineteBriefingTitle" type="text"
+                 placeholder="Ex.: Visita à Região Norte" />
+        </label>
+
+        <label>
+          <span>Objetivo da agenda</span>
+          <textarea id="gabineteBriefingObjective" rows="3"
+                    placeholder="Descreva o objetivo da visita."></textarea>
+        </label>
+
+        <label>
+          <span>Observações gerais</span>
+          <textarea id="gabineteBriefingNotes" rows="3"
+                    placeholder="Informações internas do gabinete."></textarea>
+        </label>
+      </div>
+    </section>
+
+    <div id="gabineteSelectionBar" class="gabinete-selection-bar" hidden>
+      <div>
+        <strong id="gabineteSelectedCount">0</strong>
+        <span>item(ns) selecionado(s)</span>
+      </div>
+      <button id="gabinetePreviewBtn" type="button" disabled>
+        📄 Ver prévia
+      </button>
+    </div>
+  </aside>
+
+  <div id="gabineteBackdrop" class="panel-backdrop" hidden></div>
+
+  <section id="gabinetePreview" class="gabinete-preview" aria-hidden="true">
+    <div class="gabinete-preview-toolbar">
+      <button id="closeGabinetePreviewBtn" type="button">← Voltar</button>
+      <span>Prévia do briefing</span>
+
+      <div class="gabinete-preview-actions">
+        <button id="downloadGabinetePdfBtn" type="button">📄 Baixar PDF</button>
+        <button id="shareGabineteWhatsappBtn" type="button">📱 WhatsApp</button>
+        <button id="printGabinetePreviewBtn" type="button">🖨️ Imprimir</button>
+      </div>
+    </div>
+
+    <article id="gabinetePreviewDocument" class="gabinete-preview-document"></article>
+  </section>
+
+
+  
+<aside id="dataCenterPanel" class="data-center-panel" aria-hidden="true">
+  <div class="data-center-header">
+    <div><span>ÁREA ADMINISTRATIVA</span><h2>📦 Central de Cadastro</h2>
+    <p>Consulta e qualidade dos dados territoriais.</p></div>
+    <button id="closeDataCenterBtn" type="button">×</button>
+  </div>
+  <div id="dataCenterAccessStep" class="data-center-access">
+    <div class="data-center-lock">🔒</div><h3>Acesso restrito</h3>
+    <p>Área destinada a administradores e editores autorizados.</p>
+    <label><span>Código administrativo temporário</span>
+    <input id="dataCenterAccessCode" type="password" inputmode="numeric"></label>
+    <button id="dataCenterUnlockBtn" type="button">Entrar</button>
+    <div id="dataCenterAccessStatus" class="data-center-access-status"></div>
+  </div>
+  <div id="dataCenterContent" hidden>
+    <section class="data-center-overview">
+      <button class="data-center-module active" data-module="events"><span>📅</span><strong id="dataCenterEventsCount">0</strong><small>Eventos</small></button>
+      <button class="data-center-module" data-module="hortas"><span>🌱</span><strong id="dataCenterHortasCount">0</strong><small>Hortas</small></button>
+      <button class="data-center-module" data-module="feiras"><span>🛒</span><strong id="dataCenterFeirasCount">0</strong><small>Feiras</small></button>
+      <button class="data-center-module" data-module="vivaleite"><span>🥛</span><strong id="dataCenterVivaleiteCount">0</strong><small>VIVALEITE</small></button>
+      <button class="data-center-module" data-module="pending"><span>⚠️</span><strong id="dataCenterPendingCount">0</strong><small>Pendências</small></button>
+    </section>
+    <section class="data-center-quality">
+      <div><span>QUALIDADE DA BASE</span><strong id="dataQualityPercent">0%</strong></div>
+      <div class="data-quality-bar"><span id="dataQualityBarFill"></span></div>
+      <p id="dataQualitySummary">Calculando...</p>
+    </section>
+    <section class="data-center-actions">
+      <button id="newDataRecordBtn" type="button">➕ Novo registro</button><button id="importDataBtn" type="button" disabled>📥 Importar Excel</button>
+      <button id="refreshDataCenterBtn">🔄 Atualizar</button>
+    </section>
+    <section class="data-center-filters">
+      <input id="dataCenterSearch" type="search" placeholder="Pesquisar...">
+      <select id="dataCenterRegionFilter"><option value="">Todas as regiões</option></select>
+      <select id="dataCenterStatusFilter"><option value="">Todos os status</option></select>
+      <select id="dataCenterPriorityFilter" hidden>
+        <option value="">Todas as prioridades</option>
+        <option value="critical">🔴 Críticas</option>
+        <option value="important">🟡 Importantes</option>
+        <option value="complementary">🔵 Complementares</option>
+      </select>
+    </section>
+    <div class="data-center-notice">Edição, duplicação, exclusão e importação serão ativadas somente com login e permissões no servidor.</div>
+    <section id="vivaleiteInternalDashboard" class="vivaleite-internal-dashboard" hidden>
+      <div><span>Pontos ativos</span><strong id="vlActivePoints">0</strong></div>
+      <div><span>Entregas hoje</span><strong id="vlTodayDeliveries">0</strong></div>
+      <div><span>Crianças</span><strong id="vlChildrenTotal">0</strong></div>
+      <div><span>Idosos</span><strong id="vlElderlyTotal">0</strong></div>
+      <div><span>Beneficiários</span><strong id="vlBeneficiariesTotal">0</strong></div>
+      <div><span>Capacidade</span><strong id="vlCapacityTotal">0</strong></div>
+      <div><span>Vagas</span><strong id="vlVacanciesTotal">0</strong></div>
+    </section>
+    <section id="dataCenterList" class="data-center-list"></section>
+  </div>
+</aside>
+<div id="dataCenterBackdrop" class="panel-backdrop" hidden></div>
+
+
+  
+  <section id="recordTypeModal" class="record-type-modal" aria-hidden="true">
+    <div class="record-type-card">
+      <div class="record-type-header">
+        <div>
+          <span>CENTRAL DE CADASTRO</span>
+          <h2>➕ Novo registro</h2>
+          <p>Escolha o tipo de informação que deseja cadastrar.</p>
+        </div>
+        <button id="closeRecordTypeBtn" type="button">×</button>
+      </div>
+
+      <div class="record-type-options">
+        <button id="newEventTypeBtn" type="button">
+          <span>📅</span>
+          <strong>Evento</strong>
+          <small>Agenda, entrega, reunião, ação ou atividade.</small>
+        </button>
+
+        <button id="newHortaTypeBtn" type="button">
+          <span>🌱</span>
+          <strong>Horta</strong>
+          <small>Horta comunitária, educacional ou institucional.</small>
+        </button>
+
+        <button id="newFeiraTypeBtn" type="button">
+          <span>🛒</span>
+          <strong>Feira</strong>
+          <small>Feira livre com dia, horário e território.</small>
+        </button>
+
+        <button id="newVivaleiteTypeBtn" type="button">
+          <span>🥛</span>
+          <strong>VIVALEITE</strong>
+          <small>Ponto de distribuição e atendimento do programa.</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section id="hortaFormModal" class="event-form-modal" aria-hidden="true">
+    <div class="event-form-card">
+      <div class="event-form-header">
+        <div>
+          <span>CADASTRO DE HORTAS</span>
+          <h2 id="hortaFormTitle">🌱 Nova horta</h2>
+          <p id="hortaFormSubtitle">Preencha os dados da horta.</p>
+        </div>
+        <button id="closeHortaFormBtn" type="button">×</button>
+      </div>
+
+      <form id="hortaForm">
+        <input id="hortaFormOriginalId" type="hidden" />
+
+        <div class="event-form-grid">
+          <label class="full">
+            <span>Nome da horta *</span>
+            <input id="hortaNameInput" type="text" required />
+          </label>
+
+          <label>
+            <span>Tipo *</span>
+            <select id="hortaTypeInput" required>
+              <option value="">Selecione</option>
+              <option value="Comunitária">Comunitária</option>
+              <option value="Educacional">Educacional</option>
+              <option value="Institucional">Institucional</option>
+              <option value="Outra">Outra</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Status *</span>
+            <select id="hortaStatusInput" required>
+              <option value="Ativa">Ativa</option>
+              <option value="Em implantação">Em implantação</option>
+              <option value="Em manutenção">Em manutenção</option>
+              <option value="Inativa">Inativa</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Região</span>
+            <select id="hortaRegionInput">
+              <option value="">Selecione</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Bairro *</span>
+            <select id="hortaBairroInput" required>
+              <option value="">Selecione</option>
+            </select>
+          </label>
+
+          <label class="full">
+            <span>Endereço *</span>
+            <input id="hortaAddressInput" type="text" required />
+          </label>
+
+          <label>
+            <span>Latitude</span>
+            <input id="hortaLatitudeInput" type="text" inputmode="decimal" />
+          </label>
+
+          <label>
+            <span>Longitude</span>
+            <input id="hortaLongitudeInput" type="text" inputmode="decimal" />
+          </label>
+
+          <label class="full">
+            <span>Observações</span>
+            <textarea id="hortaNotesInput" rows="4"></textarea>
+          </label>
+        </div>
+
+        <section class="event-form-quality">
+          <div>
+            <span>Qualidade do cadastro</span>
+            <strong id="hortaFormQualityPercent">0%</strong>
+          </div>
+          <div class="event-form-quality-bar">
+            <span id="hortaFormQualityFill"></span>
+          </div>
+          <p id="hortaFormQualityMessage">Preencha os campos obrigatórios.</p>
+        </section>
+
+        <div id="hortaFormStatus" class="event-form-status"></div>
+
+        <div class="event-form-actions">
+          <button id="cancelHortaFormBtn" type="button">Cancelar</button>
+          <button id="saveAndNewHortaFormBtn" type="button">💾 Salvar e criar outra</button>
+          <button id="saveHortaFormBtn" type="submit">💾 Salvar horta</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+
+  <section id="feiraFormModal" class="event-form-modal" aria-hidden="true">
+    <div class="event-form-card">
+      <div class="event-form-header">
+        <div>
+          <span>CADASTRO DE FEIRAS</span>
+          <h2 id="feiraFormTitle">🛒 Nova feira</h2>
+          <p id="feiraFormSubtitle">Preencha os dados da feira livre.</p>
+        </div>
+        <button id="closeFeiraFormBtn" type="button">×</button>
+      </div>
+
+      <form id="feiraForm">
+        <input id="feiraFormOriginalId" type="hidden" />
+
+        <div class="event-form-grid">
+          <label class="full">
+            <span>Nome da feira *</span>
+            <input id="feiraNameInput" type="text" required />
+          </label>
+
+          <label>
+            <span>Dia da semana *</span>
+            <select id="feiraDayInput" required>
+              <option value="">Selecione</option>
+              <option>Domingo</option><option>Segunda-feira</option>
+              <option>Terça-feira</option><option>Quarta-feira</option>
+              <option>Quinta-feira</option><option>Sexta-feira</option>
+              <option>Sábado</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Status *</span>
+            <select id="feiraStatusInput" required>
+              <option value="Ativa">Ativa</option>
+              <option value="Suspensa">Suspensa</option>
+              <option value="Em manutenção">Em manutenção</option>
+              <option value="Inativa">Inativa</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Horário inicial *</span>
+            <input id="feiraStartInput" type="time" required />
+          </label>
+
+          <label>
+            <span>Horário final *</span>
+            <input id="feiraEndInput" type="time" required />
+          </label>
+
+          <label>
+            <span>Região</span>
+            <select id="feiraRegionInput"><option value="">Selecione</option></select>
+          </label>
+
+          <label>
+            <span>Bairro *</span>
+            <select id="feiraBairroInput" required><option value="">Selecione</option></select>
+          </label>
+
+          <label class="full">
+            <span>Endereço principal *</span>
+            <input id="feiraAddressInput" type="text" required />
+          </label>
+
+          <label class="full">
+            <span>Trecho 1</span>
+            <input id="feiraTrecho1Input" type="text" placeholder="Ex.: Rua X, do nº 10 ao 150" />
+          </label>
+          <label class="full">
+            <span>Trecho 2</span>
+            <input id="feiraTrecho2Input" type="text" />
+          </label>
+          <label class="full">
+            <span>Trecho 3</span>
+            <input id="feiraTrecho3Input" type="text" />
+          </label>
+          <label class="full">
+            <span>Trecho 4</span>
+            <input id="feiraTrecho4Input" type="text" />
+          </label>
+
+          <label>
+            <span>Latitude</span>
+            <input id="feiraLatitudeInput" type="text" inputmode="decimal" />
+          </label>
+          <label>
+            <span>Longitude</span>
+            <input id="feiraLongitudeInput" type="text" inputmode="decimal" />
+          </label>
+
+          <label class="full">
+            <span>Observações</span>
+            <textarea id="feiraNotesInput" rows="4"></textarea>
+          </label>
+        </div>
+
+        <section class="event-form-quality">
+          <div><span>Qualidade do cadastro</span><strong id="feiraFormQualityPercent">0%</strong></div>
+          <div class="event-form-quality-bar"><span id="feiraFormQualityFill"></span></div>
+          <p id="feiraFormQualityMessage">Preencha os campos obrigatórios.</p>
+        </section>
+
+        <div id="feiraFormStatus" class="event-form-status"></div>
+        <div class="event-form-actions">
+          <button id="cancelFeiraFormBtn" type="button">Cancelar</button>
+          <button id="saveAndNewFeiraFormBtn" type="button">💾 Salvar e criar outra</button>
+          <button id="saveFeiraFormBtn" type="submit">💾 Salvar feira</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <aside id="favoritesPanel" class="mini-library-panel" aria-hidden="true">
+    <div class="mini-library-header">
+      <div><span>ATALHOS</span><h2>⭐ Favoritos</h2></div>
+      <button id="closeFavoritesBtn" type="button">×</button>
+    </div>
+    <div id="favoritesList" class="mini-library-list"></div>
+  </aside>
+  <div id="favoritesBackdrop" class="panel-backdrop" hidden></div>
+
+  <aside id="visitFolderPanel" class="mini-library-panel" aria-hidden="true">
+    <div class="mini-library-header">
+      <div><span>ROTEIRO</span><h2>📁 Pasta da Visita</h2></div>
+      <button id="closeVisitFolderBtn" type="button">×</button>
+    </div>
+    <div id="visitFolderList" class="mini-library-list"></div>
+    <div class="mini-library-footer">
+      <button id="clearVisitFolderBtn" type="button">Limpar pasta</button>
+      <button id="sendVisitToGabineteBtn" type="button">👔 Enviar ao Gabinete</button>
+    </div>
+  </aside>
+  <div id="visitFolderBackdrop" class="panel-backdrop" hidden></div>
+
+
+  <section id="vivaleiteFormModal" class="event-form-modal" aria-hidden="true">
+    <div class="event-form-card vivaleite-form-card">
+      <div class="event-form-header">
+        <div>
+          <span>CADASTRO DO VIVALEITE</span>
+          <h2 id="vivaleiteFormTitle">🥛 Novo ponto do VIVALEITE</h2>
+          <p id="vivaleiteFormSubtitle">Os dados internos não aparecem para usuários comuns.</p>
+        </div>
+        <button id="closeVivaleiteFormBtn" type="button">×</button>
+      </div>
+
+      <form id="vivaleiteForm">
+        <input id="vivaleiteOriginalId" type="hidden" />
+
+        <section class="form-security-section public-section">
+          <div class="form-security-heading">
+            <span>🌍 DADOS PÚBLICOS</span>
+            <small>Podem aparecer no mapa público.</small>
+          </div>
+
+          <div class="event-form-grid">
+            <label class="full">
+              <span>Nome da organização/ponto *</span>
+              <input id="vivaleiteNameInput" type="text" required />
+            </label>
+
+            <label>
+              <span>Status *</span>
+              <select id="vivaleiteStatusInput" required>
+                <option value="Ativo">Ativo</option>
+                <option value="Suspenso">Suspenso</option>
+                <option value="Em implantação">Em implantação</option>
+                <option value="Inativo">Inativo</option>
+              </select>
+            </label>
+
+            <fieldset class="full vivaleite-days-fieldset">
+              <legend>Dia(s) de entrega *</legend>
+              <div class="vivaleite-days-grid">
+                <label><input type="checkbox" name="vivaleiteDeliveryDay" value="Segunda-feira" /> Segunda-feira</label>
+                <label><input type="checkbox" name="vivaleiteDeliveryDay" value="Terça-feira" /> Terça-feira</label>
+                <label><input type="checkbox" name="vivaleiteDeliveryDay" value="Quarta-feira" /> Quarta-feira</label>
+                <label><input type="checkbox" name="vivaleiteDeliveryDay" value="Quinta-feira" /> Quinta-feira</label>
+                <label><input type="checkbox" name="vivaleiteDeliveryDay" value="Sexta-feira" /> Sexta-feira</label>
+                <label><input type="checkbox" name="vivaleiteDeliveryDay" value="Sábado" /> Sábado</label>
+                <label><input type="checkbox" name="vivaleiteDeliveryDay" value="Domingo" /> Domingo</label>
+              </div>
+            </fieldset>
+
+            <label>
+              <span>Horário inicial *</span>
+              <input id="vivaleiteStartInput" type="time" required />
+            </label>
+
+            <label>
+              <span>Horário final *</span>
+              <input id="vivaleiteEndInput" type="time" required />
+            </label>
+
+            <label>
+              <span>Região</span>
+              <select id="vivaleiteRegionInput">
+                <option value="">Selecione</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Bairro *</span>
+              <select id="vivaleiteBairroInput" required>
+                <option value="">Selecione</option>
+              </select>
+            </label>
+
+            <label class="full">
+              <span>Endereço *</span>
+              <input id="vivaleiteAddressInput" type="text" required />
+            </label>
+
+            <label>
+              <span>Latitude</span>
+              <input id="vivaleiteLatitudeInput" type="text" inputmode="decimal" />
+            </label>
+
+            <label>
+              <span>Longitude</span>
+              <input id="vivaleiteLongitudeInput" type="text" inputmode="decimal" />
+            </label>
+
+            <label class="full">
+              <span>Descrição institucional pública</span>
+              <textarea id="vivaleitePublicDescriptionInput" rows="3"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-security-section internal-section">
+          <div class="form-security-heading">
+            <span>🔒 DADOS INTERNOS</span>
+            <small>Somente administradores e responsáveis autorizados.</small>
+          </div>
+
+          <div class="event-form-grid">
+            <label>
+              <span>Responsável da organização</span>
+              <input id="vivaleiteLocalResponsibleInput" type="text" />
+            </label>
+
+            <label>
+              <span>Responsável substituto</span>
+              <input id="vivaleiteSubstituteInput" type="text" />
+            </label>
+
+            <label>
+              <span>Telefone</span>
+              <input id="vivaleitePhoneInput" type="tel" />
+            </label>
+
+            <label>
+              <span>E-mail</span>
+              <input id="vivaleiteEmailInput" type="email" />
+            </label>
+
+            <label>
+              <span>Crianças atendidas</span>
+              <input id="vivaleiteChildrenInput" type="number" min="0" />
+            </label>
+
+            <label>
+              <span>Idosos atendidos</span>
+              <input id="vivaleiteElderlyInput" type="number" min="0" />
+            </label>
+
+            <label>
+              <span>Capacidade máxima</span>
+              <input id="vivaleiteCapacityInput" type="number" min="0" />
+            </label>
+
+            <label>
+              <span>Vagas disponíveis</span>
+              <input id="vivaleiteVacanciesInput" type="number" min="0" />
+            </label>
+
+            <label>
+              <span>Situação da entrega de hoje</span>
+              <select id="vivaleiteDeliveryStatusInput">
+                <option value="Não iniciada">Não iniciada</option>
+                <option value="Em andamento">Em andamento</option>
+                <option value="Concluída">Concluída</option>
+                <option value="Cancelada">Cancelada</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Justificativa operacional</span>
+              <input id="vivaleiteDeliveryReasonInput" type="text" />
+            </label>
+
+            <label class="full">
+              <span>Observações operacionais internas</span>
+              <textarea id="vivaleiteInternalNotesInput" rows="4"></textarea>
+            </label>
+          </div>
+
+          <div class="internal-program-owner">
+            <strong>Responsável municipal pelo programa:</strong>
+            Karina — Prefeitura de Diadema
+          </div>
+        </section>
+
+        <section class="vivaleite-next-delivery-card">
+          <span>PRÓXIMA ENTREGA</span>
+          <strong id="vivaleiteNextDeliveryPreview">Aguardando dias e horário</strong>
+          <small id="vivaleiteLastUpdatePreview">Última atualização ainda não disponível.</small>
+        </section>
+
+        <section class="event-form-quality">
+          <div>
+            <span>Qualidade do cadastro</span>
+            <strong id="vivaleiteQualityPercent">0%</strong>
+          </div>
+          <div class="event-form-quality-bar">
+            <span id="vivaleiteQualityFill"></span>
+          </div>
+          <p id="vivaleiteQualityMessage">Preencha os campos obrigatórios.</p>
+        </section>
+
+        <div id="vivaleiteFormStatusMessage" class="event-form-status"></div>
+
+        <div class="event-form-actions">
+          <button id="cancelVivaleiteFormBtn" type="button">Cancelar</button>
+          <button id="saveAndNewVivaleiteBtn" type="button">💾 Salvar e criar outro</button>
+          <button id="saveVivaleiteBtn" type="submit">💾 Salvar ponto</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+<section id="eventFormModal" class="event-form-modal" aria-hidden="true">
+    <div class="event-form-card">
+      <div class="event-form-header">
+        <div>
+          <span>CADASTRO DE EVENTOS</span>
+          <h2 id="eventFormTitle">➕ Novo evento</h2>
+          <p id="eventFormSubtitle">Preencha os dados do evento.</p>
+        </div>
+        <button id="closeEventFormBtn" type="button">×</button>
+      </div>
+
+      <form id="eventForm">
+        <input id="eventFormOriginalId" type="hidden" />
+
+        <div class="event-form-grid">
+          <label class="full">
+            <span>Nome do evento *</span>
+            <input id="eventNameInput" type="text" required />
+          </label>
+
+          <label>
+            <span>Tipo de evento</span>
+            <input id="eventTypeInput" type="text" list="eventTypeSuggestions" />
+          </label>
+
+          <label>
+            <span>Secretaria responsável *</span>
+            <input id="eventSecretariaInput" type="text" list="eventSecretariaSuggestions" required />
+          </label>
+
+          <label>
+            <span>Data *</span>
+            <input id="eventDateInput" type="date" required />
+          </label>
+
+          <label>
+            <span>Status *</span>
+            <select id="eventStatusInput" required>
+              <option value="Rascunho">Rascunho</option>
+              <option value="Planejado">Planejado</option>
+              <option value="Confirmado">Confirmado</option>
+              <option value="Em andamento">Em andamento</option>
+              <option value="Finalizado">Finalizado</option>
+              <option value="Cancelado">Cancelado</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Hora inicial *</span>
+            <input id="eventStartInput" type="time" required />
+          </label>
+
+          <label>
+            <span>Hora final *</span>
+            <input id="eventEndInput" type="time" required />
+          </label>
+
+          <label>
+            <span>Região</span>
+            <select id="eventRegionInput">
+              <option value="">Selecione</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Bairro *</span>
+            <select id="eventBairroInput" required>
+              <option value="">Selecione</option>
+            </select>
+          </label>
+
+          <label class="full">
+            <span>Endereço</span>
+            <input id="eventAddressInput" type="text" />
+          </label>
+
+          <label class="full">
+            <span>Nome do local</span>
+            <input id="eventLocalInput" type="text" />
+          </label>
+
+          <label>
+            <span>Prioridade</span>
+            <select id="eventPriorityInput">
+              <option value="Baixa">Baixa</option>
+              <option value="Média" selected>Média</option>
+              <option value="Alta">Alta</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Público estimado</span>
+            <input id="eventPublicInput" type="number" min="0" />
+          </label>
+
+          <label>
+            <span>Responsável</span>
+            <input id="eventResponsibleInput" type="text" />
+          </label>
+
+          <label>
+            <span>Telefone</span>
+            <input id="eventPhoneInput" type="tel" />
+          </label>
+
+          <label>
+            <span>Latitude</span>
+            <input id="eventLatitudeInput" type="text" inputmode="decimal" />
+          </label>
+
+          <label>
+            <span>Longitude</span>
+            <input id="eventLongitudeInput" type="text" inputmode="decimal" />
+          </label>
+
+          <label class="full">
+            <span>Observações</span>
+            <textarea id="eventNotesInput" rows="4"></textarea>
+          </label>
+        </div>
+
+        <datalist id="eventTypeSuggestions"></datalist>
+        <datalist id="eventSecretariaSuggestions"></datalist>
+
+        <section class="event-form-quality">
+          <div>
+            <span>Qualidade do cadastro</span>
+            <strong id="eventFormQualityPercent">0%</strong>
+          </div>
+          <div class="event-form-quality-bar">
+            <span id="eventFormQualityFill"></span>
+          </div>
+          <p id="eventFormQualityMessage">Preencha os campos obrigatórios.</p>
+        </section>
+
+        <div id="eventFormStatus" class="event-form-status"></div>
+
+        <div class="event-form-actions">
+          <button id="cancelEventFormBtn" type="button">Cancelar</button>
+          <button id="saveAndNewEventFormBtn" type="button">💾 Salvar e criar outro</button>
+          <button id="saveEventFormBtn" type="submit">💾 Salvar evento</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+<aside id="dailyReportPanel" class="daily-report-panel" aria-hidden="true">
+    <div class="daily-report-header">
+      <div>
+        <span>AGENDA DO DIA</span>
+        <h2>📅 Eventos do dia</h2>
+      </div>
+      <button id="closeDailyReportBtn" type="button" aria-label="Fechar">×</button>
+    </div>
+
+    <div class="daily-report-toolbar">
+      <label>
+        <span>Data</span>
+        <input id="dailyReportDate" type="date" />
+      </label>
+
+      <label>
+        <span>Ordenar por</span>
+        <select id="dailyReportSort">
+          <option value="horario">Horário</option>
+          <option value="regiao">Região</option>
+          <option value="secretaria">Secretaria</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="daily-report-actions">
+      <button id="generateDailyReportBtn" type="button">📄 Gerar relatório</button>
+      <button id="shareDailyReportWhatsappBtn" type="button">📱 WhatsApp</button>
+      <button id="printDailyReportBtn" type="button">🖨️ Imprimir</button>
+    </div>
+
+    <div id="dailyReportStatus" class="daily-report-status"></div>
+    <div id="dailyReportList" class="daily-report-list"></div>
+  </aside>
+
+  <div id="dailyReportBackdrop" class="panel-backdrop" hidden></div>
+
+<aside id="explorePanel" class="explore-panel" aria-hidden="true">
+    <div class="explore-panel-header">
+      <div>
+        <span>MAPA TERRITORIAL</span>
+        <h2>🏙️ Explorar Diadema</h2>
+      </div>
+      <button id="closeExploreBtn" type="button" aria-label="Fechar">×</button>
+    </div>
+
+    <section class="explore-section">
+      <h3>Ações</h3>
+
+      <label class="explore-option">
+        <span class="explore-option-main">
+          <input id="exploreEventsToggle" type="checkbox" checked />
+          <span>📅 Eventos</span>
+        </span>
+        <strong id="exploreEventsCount">0</strong>
+      </label>
+
+      <button id="exploreAgendaBtn" class="explore-link-option" type="button">
+        <span>👔 Agenda do Prefeito</span>
+        <strong id="exploreAgendaCount">0</strong>
+      </button>
+    </section>
+
+    <section class="explore-section">
+      <h3>Segurança Alimentar</h3>
+
+      <label class="explore-option">
+        <span class="explore-option-main">
+          <input id="exploreHortasToggle" type="checkbox" />
+          <span>🌱 Hortas Comunitárias</span>
+        </span>
+        <strong id="exploreHortasCount">0</strong>
+      </label>
+      <label class="explore-option">
+        <span class="explore-option-main">
+          <input id="exploreVivaleiteToggle" type="checkbox" />
+          <span>🥛 VIVALEITE</span>
+        </span>
+        <strong id="exploreVivaleiteCount">0</strong>
+      </label>
+
+      <div class="explore-option disabled">
+        <span>🛒 Feiras Livres</span>
+        <small>Em revisão</small>
+      </div>
+
+      <div class="explore-option disabled">
+        <span>🍎 Banco de Alimentos</span>
+        <small>Em breve</small>
+      </div>
+
+      <div class="explore-option disabled">
+        <span>🥛 Viva Leite</span>
+        <small>Em breve</small>
+      </div>
+
+      <div class="explore-option disabled">
+        <span>🍽️ Restaurantes Populares</span>
+        <small>Em breve</small>
+      </div>
+    </section>
+
+    <section class="explore-section">
+      <h3>Estrutura da Cidade</h3>
+      <div class="explore-option disabled">
+        <span>📍 Locais Estratégicos</span>
+        <small>Em preparação</small>
+      </div>
+    </section>
+
+    <div class="explore-summary">
+      <strong>GeoDiadema</strong>
+      <span id="exploreSummaryText">Carregando informações...</span>
+    </div>
+  </aside>
+
+  <div id="exploreBackdrop" class="panel-backdrop" hidden></div>
+
+<aside id="routeEditorPanel" class="route-editor-panel" aria-hidden="true">
+    <div class="route-editor-header">
+      <div>
+        <span>EDITOR DE PERCURSO</span>
+        <h2>Desenhar feira no mapa</h2>
+      </div>
+      <button id="closeRouteEditorBtn" type="button" aria-label="Fechar">×</button>
+    </div>
+
+    <label class="route-editor-field">
+      <span>Feira ou evento recorrente</span>
+      <select id="routeEventSelect">
+        <option value="">Selecione uma feira</option>
+      </select>
+    </label>
+
+    <label class="route-editor-field">
+      <span>Código de edição</span>
+      <input
+        id="routeEditorCode"
+        type="password"
+        placeholder="Digite o código configurado no Apps Script"
+      />
+    </label>
+
+    <section id="fairBasePanel" class="fair-base-panel" hidden>
+      <div class="fair-base-summary">
+        <strong id="fairBaseName">Feira selecionada</strong>
+        <span id="fairBaseSchedule"></span>
+      </div>
+
+      <div id="fairSegmentsList" class="fair-segments-list"></div>
+
+      <div id="manualFairMarkers" class="manual-fair-markers" hidden>
+        <strong>Ajustar início e fim manualmente</strong>
+        <p>
+          Se os marcadores automáticos não aparecerem corretamente,
+          marque o início A e o fim B diretamente no mapa.
+        </p>
+        <div class="manual-fair-actions">
+          <button id="markFairStartBtn" type="button">🟢 Marcar início A</button>
+          <button id="markFairEndBtn" type="button">🔴 Marcar fim B</button>
+          <button id="clearFairMarkersBtn" type="button">🧹 Limpar marcações</button>
+        </div>
+      </div>
+
+      <div class="fair-progress">
+        <div class="fair-progress-label">
+          <span>Cadastro das feiras</span>
+          <strong id="fairProgressText">0 de 0 cadastradas</strong>
+        </div>
+        <div class="fair-progress-track">
+          <span id="fairProgressBar"></span>
+        </div>
+      </div>
+    </section>
+
+    <div class="route-editor-instructions">
+      <strong>Como desenhar:</strong>
+      <ol>
+        <li>Clique em <b>Nova rua</b>.</li>
+        <li>Clique no começo, nas curvas e no final da rua.</li>
+        <li>Clique em <b>Finalizar rua</b>.</li>
+        <li>Repita para as outras ruas da mesma feira.</li>
+        <li>Clique em <b>Salvar percurso</b>.</li>
+      </ol>
+    </div>
+
+    <div id="routeRegistrationStatus" class="route-registration-status pending">
+      ⚪ Percurso pendente
+    </div>
+
+    <div id="routeCounter" class="route-counter">
+      0 ruas concluídas
+    </div>
+
+    <div id="routeMainActions" class="route-main-actions">
+      <button id="createRouteBtn" type="button">➕ Criar percurso</button>
+      <button id="editRouteBtn" type="button" hidden>✏️ Editar percurso</button>
+      <button id="deleteRouteBtn" type="button" hidden>🗑️ Apagar percurso</button>
+    </div>
+
+    <div id="routeDrawingActions" class="route-editor-actions" hidden>
+      <button id="startRouteDrawBtn" type="button">➕ Nova rua</button>
+      <button id="finishRouteDrawBtn" type="button" disabled>✅ Finalizar rua</button>
+      <button id="undoRoutePointBtn" type="button" disabled>↶ Desfazer último ponto</button>
+      <button id="removeLastRouteBtn" type="button">🗑️ Remover última rua</button>
+      <button id="clearRoutesBtn" type="button">🧹 Limpar tudo</button>
+      <button id="cancelRouteEditBtn" type="button">✖ Cancelar edição</button>
+      <button id="saveRoutesBtn" class="primary" type="button">💾 Salvar percurso</button>
+    </div>
+
+    <div id="routeEditorStatus" class="route-editor-status">
+      Selecione uma feira para começar.
+    </div>
+  </aside>
+
+  <section id="dashboardPanel" class="dashboard-panel" aria-hidden="true">
+    <div class="dashboard-header">
+      <div>
+        <span class="dashboard-kicker">RESUMO DOS EVENTOS</span>
+        <h2>Painel GeoEventos <small class="version-label">GeoDiadema 3.2.2</small></h2>
+      </div>
+      <button id="closeDashboardBtn" type="button" aria-label="Fechar painel">×</button>
+    </div>
+
+    <div class="dashboard-cards">
+      <article class="metric-card">
+        <span class="metric-icon">📅</span>
+        <div>
+          <strong id="metricToday">0</strong>
+          <span>Eventos hoje</span>
+        </div>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-icon">🗓️</span>
+        <div>
+          <strong id="metricWeek">0</strong>
+          <span>Próximos 7 dias</span>
+        </div>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-icon">📆</span>
+        <div>
+          <strong id="metricMonth">0</strong>
+          <span>Próximos 30 dias</span>
+        </div>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-icon">👔</span>
+        <div>
+          <strong id="metricMayor">0</strong>
+          <span>Agenda do Prefeito</span>
+        </div>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-icon">🔁</span>
+        <div>
+          <strong id="metricRecurring">0</strong>
+          <span>Eventos recorrentes</span>
+        </div>
+      </article>
+
+      <article class="metric-card">
+        <span class="metric-icon">📍</span>
+        <div>
+          <strong id="metricRegions">0</strong>
+          <span>Regiões com eventos</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="dashboard-grid">
+      <article class="dashboard-box">
+        <div class="dashboard-box-title">
+          <h3>Eventos por região</h3>
+          <span id="regionTotalLabel">0 registros</span>
+        </div>
+        <div id="regionRanking" class="ranking-list"></div>
+      </article>
+
+      <article class="dashboard-box">
+        <div class="dashboard-box-title">
+          <h3>Eventos por secretaria</h3>
+          <span id="secretariaTotalLabel">0 registros</span>
+        </div>
+        <div id="secretariaRanking" class="ranking-list"></div>
+      </article>
+    </div>
+
+    <div class="dashboard-footer">
+      <span id="dashboardUpdated">Dados carregados da planilha.</span>
+      <button id="dashboardShowAllBtn" type="button">Ver todos no mapa</button>
+    </div>
+  </section>
+
+  <aside id="calendarPanel" class="calendar-panel" aria-hidden="true">
+    <div class="calendar-header">
+      <button id="prevMonthBtn" type="button" aria-label="Mês anterior">‹</button>
+      <h2 id="calendarTitle">Calendário</h2>
+      <button id="nextMonthBtn" type="button" aria-label="Próximo mês">›</button>
+      <button id="closeCalendarBtn" class="calendar-close" type="button" aria-label="Fechar calendário">×</button>
+    </div>
+
+    <div class="calendar-weekdays" aria-hidden="true">
+      <span>SEG</span>
+      <span>TER</span>
+      <span>QUA</span>
+      <span>QUI</span>
+      <span>SEX</span>
+      <span>SÁB</span>
+      <span>DOM</span>
+    </div>
+
+    <div id="calendarGrid" class="calendar-grid"></div>
+
+    <div class="calendar-legend">
+      <span><i class="legend-dot few"></i> 1 a 3</span>
+      <span><i class="legend-dot medium"></i> 4 a 7</span>
+      <span><i class="legend-dot many"></i> 8 ou mais</span>
+    </div>
+
+    <div class="calendar-actions">
+      <button id="clearCalendarDateBtn" type="button">Mostrar todas as datas</button>
+    </div>
+
+    <div id="calendarSelection" class="calendar-selection">
+      Clique em uma data para filtrar o mapa.
+    </div>
+  </aside>
+
+  <div id="statusBox">Carregando eventos...</div>
+<nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Navegação principal">
+  <button type="button" data-mobile-action="map"><span>🗺️</span><small>Mapa</small></button>
+  <button type="button" data-mobile-action="search"><span>🔍</span><small>Pesquisar</small></button>
+  <button type="button" data-mobile-action="briefing"><span>📋</span><small>Briefing</small></button>
+  <button type="button" data-mobile-action="favorites"><span>⭐</span><small>Favoritos</small></button>
+  <button type="button" data-mobile-action="more"><span>☰</span><small>Mais</small></button>
+</nav>
+<button id="mobileFab" class="mobile-fab" type="button" aria-label="Novo registro">＋</button>
+<section id="mobileMoreSheet" class="mobile-sheet" aria-hidden="true">
+  <div class="mobile-sheet-handle"></div>
+  <div class="mobile-sheet-header">
+    <div><span>GEODIADEMA</span><h2>Mais opções</h2></div>
+    <button id="closeMobileMoreSheet" type="button">×</button>
+  </div>
+  <div class="mobile-sheet-grid">
+    <button type="button" data-sheet-action="explore">🗺️ Explorar Diadema</button>
+    <button type="button" data-sheet-action="today">📅 O que tem hoje?</button>
+    <button type="button" data-sheet-action="agenda">👔 Agenda</button>
+    <button type="button" data-sheet-action="visit">📁 Pasta da Visita</button>
+    <button type="button" data-sheet-action="central">📦 Central de Cadastro</button>
+    <button type="button" data-sheet-action="location">📍 Minha localização</button>
+  </div>
+</section>
+<div id="mobileSheetBackdrop" class="panel-backdrop" hidden></div>
+
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="script.js?v=3.2.2"></script>
+</body>
+</html>
